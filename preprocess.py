@@ -25,5 +25,5 @@ for patient_id in os.listdir(path_to_petct):
     volume = readmhd.read(pth_to_petiso % patient_id)
     image_info_csv = open(path_to_csv, 'a')
     writer = csv.writer(image_info_csv, lineterminator='\n') 
-    writer.writerow( [patient_id, volume.voxelsize[0], volume.voxelsize[1], volume.voxelsize[2], volume.matrixsize[0], volume.matrixsize[1], volume.matrixsize[2]])
+    writer.writerow( [patient_id, volume.voxelsize[0], volume.voxelsize[1], volume.voxelsize[2], volume.matrixsize[0], volume.matrixsize[1], volume.matrixsize[2]] )
     image_info_csv.close()
