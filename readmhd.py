@@ -90,15 +90,17 @@ def read(mhdfilename, readrawfile=True):
 #    print >> sys.stderr, 'matrixsize', matrixsize
 #    print >> sys.stderr, 'voxelsize', voxelsize
 #    print >> sys.stderr, 'typeid', typeid
-    print('matrixsize', matrixsize, file=sys.stderr) 
-    print('voxelsize', voxelsize, file=sys.stderr)
-    print('typeid', typeid, file=sys.stderr) 
+
+##    print('matrixsize', matrixsize, file=sys.stderr) 
+##    print('voxelsize', voxelsize, file=sys.stderr)
+##    print('typeid', typeid, file=sys.stderr) 
 
     
     (mhdfileroot, mhdfileext) = os.path.splitext(mhdfilename)
     rawfilename = mhdfileroot + '.raw'
 #    print >> sys.stderr, 'reading ', rawfilename, '...'
-    print('reading ', rawfilename, '...', file=sys.stderr) 
+
+##    print('reading ', rawfilename, '...', file=sys.stderr) 
     
     if readrawfile:
         
@@ -110,7 +112,9 @@ def read(mhdfilename, readrawfile=True):
 #        
 #        vol = np.array(struct.unpack(str(int(matrixsize[0]*matrixsize[1]*matrixsize[2]))+typeidmap[typeid], rawvol))
         vol = np.fromfile(rawfilename, typeidmapmeta2np[typeid])
-        print(matrixsize[::-1])
+
+##        print(matrixsize[::-1])
+
         vol = vol.reshape(matrixsize[::-1])     # ********** NOTE: vol[z][y][x]
     else:
         vol = []

@@ -39,13 +39,13 @@ def divide_patients(patients=[],
     
     return group_patients
     
-def train_main(input_shape=(257,166,166,1),
+def train_main(input_shape=(257,166,166),
                ):
     
     pth_to_petiso = "../../PET-CT_iso3mm/%s/PETiso.mhd" # % patient_id
     
     # divide patients
-    patients = preprocess.get_patients(voxel_size=list(input_shape[::-1])[1:])
+    patients = preprocess.get_patients(voxel_size=list(input_shape[::-1]))
     group_patients = divide_patients(patients, train_per=0.7, val_per=0.15, test_per=0.15)
     
     # load data
