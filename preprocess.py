@@ -29,7 +29,7 @@ import readmhd
 #    image_info_csv.close()
 #
     
-def get_patients(voxel_size=[166,166,257],
+def get_patients(matrix_size=[166,166,257],
                  ):
     path_to_petct = "../../PET-CT_iso3mm/"
     pth_to_petiso = "../../PET-CT_iso3mm/%s/PETiso.mhd" # % patient_id
@@ -37,8 +37,8 @@ def get_patients(voxel_size=[166,166,257],
     patients=[]
     for patient in os.listdir(path_to_petct):
         volume = readmhd.read(pth_to_petiso % patient)
-        print(volume.voxelsize)
-        if volume.voxelsize==voxel_size:
+#        print(volume.voxelsize)
+        if volume.matrixsize==matrix_size:
             patients.append(patient)
     
     return patients

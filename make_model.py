@@ -8,7 +8,7 @@ Created on Thu Aug 23 14:48:16 2018
 import re, random
 import numpy as np
 import keras
-from keras.layers import Input, Dense
+from keras.layers import Input, Dense, Flatten, Conv3D
 from keras.models import Model
 
 # original libraries
@@ -20,7 +20,10 @@ import readmhd
 def make_cnn(input_shape=(257,166,166,1),
              ):
     inputs = Input(shape=input_shape)
-    predictions = Dense(2, activation="softmax")(inputs)
+    x = Conv3D(filters=8, kernel_size=3, padding='same', activation="relu")(inputs)
+    x = Conv3D(filters=8, kernel_size=3, strides=(2,2,2), padding='same', activation="relu")(x)
+    x = Flatten()(x)
+    predictions = Dense(2, activation="softmax")(x)
     
     model = Model(inputs=inputs, outputs=predictions)
     
@@ -39,39 +42,43 @@ def divide_patients(patients=[],
     
     return group_patients
     
-def train_main(input_shape=(257,166,166),
+def train_main(input_shape=(257,166,166,1),
                ):
     
     pth_to_petiso = "../../PET-CT_iso3mm/%s/PETiso.mhd" # % patient_id
     
     # divide patients
-    patients = preprocess.get_patients(voxel_size=list(input_shape[::-1]))
+    matrix_size = list(input_shape[::-1])[1:]
+    patients = preprocess.get_patients(matrix_size=matrix_size)
     group_patients = divide_patients(patients, train_per=0.7, val_per=0.15, test_per=0.15)
     
     # load data
     data, label = {}, {}
     for group in ["train", "validation", "test"]:
-        data[group], label[group] = np.zeros((len(group_patients[group]),)+input_shape), np.zeros((len(group_patients[group]),))
+        data[group], label[group] = np.zeros((len(group_patients[group]),)+input_shape), np.zeros((len(group_patients[group]),2))
 #    data["validation"], label["validation"] = np.zeros((len(patients),)+input_shape+(1,)), np.zeros((len(group_patients["validation"]),)+(1,))
         count = 0
         for patient_id in group_patients[group]:
             volume = readmhd.read(pth_to_petiso % patient_id)
-            data[group][count] = volume.vol
+            data[group][count] = volume.vol.reshape(volume.vol.shape+(1,))
             if re.match("N.*", patient_id):
-                label[group][count] = 0
+                label[group][count] = np.array([1,0])
             else:
-                label[group][count] = 1
+                label[group][count] = np.array([0,1])
             count += 1
-        data[group] = data[group].reshape(data[group].shape+(1,))
-        label[group] = label[group].reshape(label[group].shape+(1,))
+#        data[group] = data[group].reshape(data[group].shape+(1,))
+#        label[group] = label[group].reshape(label[group].shape+(1,))
     
     # set cnn model
     model = make_cnn(input_shape=input_shape)
+    model.summary()
     model.compile(optimizer='sgd',
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
     
-    model.fit(x=data["train"], y=label["train"], batch_size=1, epochs=8, validation_data=(data["validation"], label["validation"]))
+    model.fit(x=data["train"], y=label["train"], batch_size=8, epochs=256, 
+              validation_data=(data["validation"], label["validation"]),
+              )
    
 def main():
     train_main()
