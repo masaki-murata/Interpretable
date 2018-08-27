@@ -5,10 +5,11 @@ Created on Thu Aug 23 14:48:16 2018
 @author: murata
 """
 
-import re, random
+import re, random, csv
 import numpy as np
 import keras
 from keras.layers import Input, Dense, Flatten, Conv3D
+from keras.layers.normalization import BatchNormalization
 from keras.models import Model
 
 # original libraries
@@ -21,7 +22,11 @@ def make_cnn(input_shape=(257,166,166,1),
              ):
     inputs = Input(shape=input_shape)
     x = Conv3D(filters=8, kernel_size=3, padding='same', activation="relu")(inputs)
-    x = Conv3D(filters=8, kernel_size=3, strides=(2,2,2), padding='same', activation="relu")(x)
+    x = Conv3D(filters=8, kernel_size=3, strides=(3,3,3), padding='same', activation="relu")(x)
+    x = BatchNormalization()(x)
+    x = Conv3D(filters=8, kernel_size=3, padding='same', activation="relu")(x)
+    x = Conv3D(filters=8, kernel_size=3, strides=(3,3,3), padding='same', activation="relu")(x)
+    x = BatchNormalization()(x)
     x = Flatten()(x)
     predictions = Dense(2, activation="softmax")(x)
     
@@ -46,6 +51,7 @@ def train_main(input_shape=(257,166,166,1),
                ):
     
     pth_to_petiso = "../../PET-CT_iso3mm/%s/PETiso.mhd" # % patient_id
+    path_to_history = "./history.csv"
     
     # divide patients
     matrix_size = list(input_shape[::-1])[1:]
@@ -69,6 +75,7 @@ def train_main(input_shape=(257,166,166,1),
 #        data[group] = data[group].reshape(data[group].shape+(1,))
 #        label[group] = label[group].reshape(label[group].shape+(1,))
     
+
     # set cnn model
     model = make_cnn(input_shape=input_shape)
     model.summary()
@@ -76,10 +83,23 @@ def train_main(input_shape=(257,166,166,1),
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
     
-    model.fit(x=data["train"], y=label["train"], batch_size=8, epochs=256, 
+    history = model.fit(x=data["train"], y=label["train"], batch_size=8, epochs=256, 
               validation_data=(data["validation"], label["validation"]),
               )
-   
+
+    loss = history.history['loss']
+    acc = history.history['accuracy']
+    val_loss = history.history['val_loss']
+    val_acc = history.history['accuracy']
+
+    history_csv = open(path_to_history, 'w')
+    writer = csv.writer(history_csv, lineterminator='\n') 
+    writer.writerow( ["epoch", "loss", "acc", "val_loss", "val_acc"] ) # headder
+    for i in range(len(acc)):
+        writer.writerow( [i, loss[i], acc[i], val_loss[i], val_acc[i]] )
+    history_csv.close()
+
+
 def main():
     train_main()
     
