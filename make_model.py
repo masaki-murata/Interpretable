@@ -24,10 +24,14 @@ def make_cnn(input_shape=(257,166,166,1),
     x = Conv3D(filters=8, kernel_size=3, padding='same', activation="relu")(inputs)
     x = Conv3D(filters=8, kernel_size=3, strides=(3,3,3), padding='same', activation="relu")(x)
     x = BatchNormalization()(x)
-    x = Conv3D(filters=8, kernel_size=3, padding='same', activation="relu")(x)
-    x = Conv3D(filters=8, kernel_size=3, strides=(3,3,3), padding='same', activation="relu")(x)
+    x = Conv3D(filters=32, kernel_size=3, padding='same', activation="relu")(x)
+    x = Conv3D(filters=32, kernel_size=3, strides=(3,3,3), padding='same', activation="relu")(x)
+    x = BatchNormalization()(x)
+    x = Conv3D(filters=64, kernel_size=3, padding='same', activation="relu")(x)
+    x = Conv3D(filters=64, kernel_size=3, strides=(3,3,3), padding='same', activation="relu")(x)
     x = BatchNormalization()(x)
     x = Flatten()(x)
+    x = Dense(256, activation="relu")(x)
     predictions = Dense(2, activation="softmax")(x)
     
     model = Model(inputs=inputs, outputs=predictions)
@@ -48,6 +52,8 @@ def divide_patients(patients=[],
     return group_patients
     
 def train_main(input_shape=(257,166,166,1),
+               batch_size=8,
+               epochs=256,
                ):
     
     pth_to_petiso = "../../PET-CT_iso3mm/%s/PETiso.mhd" # % patient_id
@@ -69,7 +75,7 @@ def train_main(input_shape=(257,166,166,1),
             data[group][count] = volume.vol.reshape(volume.vol.shape+(1,))
             if re.match("N.*", patient_id):
                 label[group][count] = np.array([1,0])
-            else:
+            elif re.match("L.*", patient_id):
                 label[group][count] = np.array([0,1])
             count += 1
 #        data[group] = data[group].reshape(data[group].shape+(1,))
@@ -83,14 +89,14 @@ def train_main(input_shape=(257,166,166,1),
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
     
-    history = model.fit(x=data["train"], y=label["train"], batch_size=8, epochs=256, 
+    history = model.fit(x=data["train"], y=label["train"], batch_size=batch_size, epochs=epochs, 
               validation_data=(data["validation"], label["validation"]),
               )
 
     loss = history.history['loss']
-    acc = history.history['accuracy']
+    acc = history.history['acc']
     val_loss = history.history['val_loss']
-    val_acc = history.history['accuracy']
+    val_acc = history.history['val_acc']
 
     history_csv = open(path_to_history, 'w')
     writer = csv.writer(history_csv, lineterminator='\n') 
@@ -101,7 +107,7 @@ def train_main(input_shape=(257,166,166,1),
 
 
 def main():
-    train_main()
+    train_main(epochs=256)
     
     
 
