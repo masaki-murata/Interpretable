@@ -32,7 +32,7 @@ import readmhd
 def get_patients(matrix_size=[166,166,257],
                  ):
     path_to_petct = "../../PET-CT_iso3mm/"
-    pth_to_petiso = "../../PET-CT_iso3mm/%s/PETiso.mhd" # % patient_id
+    pth_to_petiso = "../../PET-CT_iso3mm/%s/PETiso.mhd" # % patient
     
     patients=[]
     for patient in os.listdir(path_to_petct):
@@ -43,12 +43,43 @@ def get_patients(matrix_size=[166,166,257],
     
     return patients
 
+def get_lung(matrix_size=[166,166,257]):
+    path_to_petct = "../../PET-CT_iso3mm/"
+    pth_to_petiso = "../../PET-CT_iso3mm/%s/PETiso.mhd" # % patient
+    pth_to_LungAreaIso = "../../PET-CT_iso3mm/%s/LungAreaIso.mhd" # % patient
+    pth_to_WbMaskIso = "../../PET-CT_iso3mm/%s/WbMaskIso.mhd" # % patient
+    
+
+#    for patient in get_patients(matrix_size=matrix_size):
+    BB_z_max, BB_z_min = 0, 1000
+    for patient in os.listdir(path_to_petct):
+        pet = readmhd.read(pth_to_petiso % patient).vol
+        if os.path.exists(pth_to_LungAreaIso % patient):
+            lungarea = readmhd.read(pth_to_LungAreaIso % patient).vol
+        elif os.path.exists(pth_to_WbMaskIso % patient):
+            lungarea = readmhd.read(pth_to_WbMaskIso % patient).vol
+            lungarea[lungarea<3]=0
+        BB_lungarea = np.argwhere(lungarea)
+        (zmin, ymin, xmin), (zmax, ymax, xmax) = BB_lungarea.min(0), BB_lungarea.max(0)+1
+        if zmax-zmin > BB_z_max:
+            BB_z_max = zmax-zmin
+        if zmax-zmin < BB_z_min:
+            BB_z_min = zmax-zmin
+#        if zmax-zmin > 100:
+#            print(zmax-zmin, patient)
+    print(BB_z_min, BB_z_max)
+#        print(z_min, z_max)
+#        print(np.sum(lungarea)==np.sum(lungarea[z_min:z_max,:,:]))
+
+#            print(np.unique(lungarea))
+#            print(lungarea.shape)
+    
     
     
 def main():
-    patients = get_patients()
+    get_lung()
     
-    print(len(patients))
+#    print(len(patients))
     
 
 if __name__ == '__main__':
