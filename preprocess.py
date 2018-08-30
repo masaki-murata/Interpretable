@@ -48,19 +48,34 @@ def get_lung(matrix_size=[166,166,257]):
     pth_to_petiso = "../../PET-CT_iso3mm/%s/PETiso.mhd" # % patient
     pth_to_LungAreaIso = "../../PET-CT_iso3mm/%s/LungAreaIso.mhd" # % patient
     pth_to_WbMaskIso = "../../PET-CT_iso3mm/%s/WbMaskIso.mhd" # % patient
+    path_to_lung_size = "./lung_size.csv"
     
+    if os.path.exists(path_to_lung_size):
+        os.remove(path_to_lung_size)
+    lung_size_csv = open(path_to_lung_size, 'w')
+    writer = csv.writer(lung_size_csv, lineterminator='\n') 
+    writer.writerow( ["patient_id", "xmin", "xmax", "ymin", "ymax", "zmin", "zmax"] ) # headder
+    lung_size_csv.close()
 
 #    for patient in get_patients(matrix_size=matrix_size):
     BB_z_max, BB_z_min = 0, 1000
+    num_patient, num_lai, num_wmi = 0, 0, 0
     for patient in os.listdir(path_to_petct):
+        num_patient += 1
         pet = readmhd.read(pth_to_petiso % patient).vol
         if os.path.exists(pth_to_LungAreaIso % patient):
+            num_lai += 1
             lungarea = readmhd.read(pth_to_LungAreaIso % patient).vol
         elif os.path.exists(pth_to_WbMaskIso % patient):
+            num_wmi += 1
             lungarea = readmhd.read(pth_to_WbMaskIso % patient).vol
             lungarea[lungarea<3]=0
         BB_lungarea = np.argwhere(lungarea)
         (zmin, ymin, xmin), (zmax, ymax, xmax) = BB_lungarea.min(0), BB_lungarea.max(0)+1
+        lung_size_csv = open(path_to_lung_size, 'a')
+        writer = csv.writer(lung_size_csv, lineterminator='\n') 
+        writer.writerow( [patient, xmin, xmax, ymin, ymax, zmin, zmax] ) # headder
+        lung_size_csv.close()
         if zmax-zmin > BB_z_max:
             BB_z_max = zmax-zmin
         if zmax-zmin < BB_z_min:
@@ -68,6 +83,7 @@ def get_lung(matrix_size=[166,166,257]):
 #        if zmax-zmin > 100:
 #            print(zmax-zmin, patient)
     print(BB_z_min, BB_z_max)
+    print(num_patient, num_lai, num_wmi)
 #        print(z_min, z_max)
 #        print(np.sum(lungarea)==np.sum(lungarea[z_min:z_max,:,:]))
 
