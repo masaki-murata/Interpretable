@@ -10,25 +10,7 @@ import csv, os
 
 import readmhd
 
-#path_to_petct = "../../PET-CT_iso3mm/"
-#pth_to_petiso = "../../PET-CT_iso3mm/%s/PETiso.mhd" # % patient_id
-##path_to_text = "./pet.txt"
-#path_to_csv = "./image_info.csv"
-#
-#image_info_csv = open(path_to_csv, 'w')
-#writer = csv.writer(image_info_csv, lineterminator='\n') 
-#writer.writerow( ["patient_id", "voxel_size1", "voxel_size2", "voxel_size3", "matrix_size1", "matrix_size2", "matrix_size3"] ) # headder
-#image_info_csv.close()
-#
-#for patient_id in os.listdir(path_to_petct):
-#    print(patient_id)
-#    volume = readmhd.read(pth_to_petiso % patient_id)
-#    image_info_csv = open(path_to_csv, 'a')
-#    writer = csv.writer(image_info_csv, lineterminator='\n') 
-#    writer.writerow( [patient_id, volume.voxelsize[0], volume.voxelsize[1], volume.voxelsize[2], volume.matrixsize[0], volume.matrixsize[1], volume.matrixsize[2]] )
-#    image_info_csv.close()
-#
-    
+   
 def get_patients(matrix_size=[166,166,257],
                  ):
     path_to_petct = "../../PET-CT_iso3mm/"
@@ -43,7 +25,29 @@ def get_patients(matrix_size=[166,166,257],
     
     return patients
 
-def get_lung(matrix_size=[166,166,257]):
+
+def lung_center_size(patient="",
+                     center_size="center"):
+    path_to_LungAreaIso = "../../PET-CT_iso3mm/%s/LungAreaIso.mhd" # % patient
+    path_to_WbMaskIso = "../../PET-CT_iso3mm/%s/WbMaskIso.mhd" # % patient
+
+    if os.path.exists(path_to_LungAreaIso % patient):
+        lungarea = readmhd.read(path_to_LungAreaIso % patient).vol
+    elif os.path.exists(path_to_WbMaskIso % patient):
+        lungarea = readmhd.read(path_to_WbMaskIso % patient).vol
+        lungarea[lungarea<3]=0
+    BB_lungarea = np.argwhere(lungarea)
+    (zmin, ymin, xmin), (zmax, ymax, xmax) = BB_lungarea.min(0), BB_lungarea.max(0)+1
+    x_center, y_center, z_center = int((xmax+xmin)/2.0), int((ymax+ymin)/2.0), int((zmax+zmin)/2.0)
+    
+    if center_size=="center":
+        return x_center, y_center, z_center
+    if center_size=="size":
+        return xmax-xmin, ymax-ymin, zmax-zmin
+#    return (xmin, xmax, ymin, ymax, zmin, zmax)
+    
+    
+def get_lung_size():
     path_to_petct = "../../PET-CT_iso3mm/"
     path_to_petiso = "../../PET-CT_iso3mm/%s/PETiso.mhd" # % patient
     path_to_LungAreaIso = "../../PET-CT_iso3mm/%s/LungAreaIso.mhd" # % patient
@@ -91,26 +95,28 @@ def get_lung(matrix_size=[166,166,257]):
 
 #            print(np.unique(lungarea))
 #            print(lungarea.shape)
+#    return 
 
-def test():
-    path_to_petct = "../../PET-CT_iso3mm/"
-    path_to_test_csv = "./test.csv"
     
-    if os.path.exists(path_to_test_csv):
-        os.remove(path_to_test_csv)
-
-    test_csv = open(path_to_test_csv, 'w')
-    writer = csv.writer(test_csv, lineterminator='\n') 
-    writer.writerow( ["patient"] ) 
-    test_csv.close()
-    
-    for patient in os.listdir(path_to_petct): 
-#        print(patient)
-        test_csv = open(path_to_test_csv, 'a')
-        writer = csv.writer(test_csv, lineterminator='\n') 
-        writer.writerow( [patient] ) 
-        test_csv.close()
-        
+#def test():
+#    path_to_petct = "../../PET-CT_iso3mm/"
+#    path_to_test_csv = "./test.csv"
+#    
+#    if os.path.exists(path_to_test_csv):
+#        os.remove(path_to_test_csv)
+#
+#    test_csv = open(path_to_test_csv, 'w')
+#    writer = csv.writer(test_csv, lineterminator='\n') 
+#    writer.writerow( ["patient"] ) 
+#    test_csv.close()
+#    
+#    for patient in os.listdir(path_to_petct): 
+##        print(patient)
+#        test_csv = open(path_to_test_csv, 'a')
+#        writer = csv.writer(test_csv, lineterminator='\n') 
+#        writer.writerow( [patient] ) 
+#        test_csv.close()
+#        
     
     
 def main():
