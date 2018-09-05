@@ -62,18 +62,23 @@ def divide_patients(size=(100,100,100),
     
 
 def make_validation(patients=[],
-                    size=(100,100,100)):
-    pth_to_petiso = "../../PET-CT_iso3mm/%s/PETiso.mhd" # % patient_id
+                    image_size=(100,100,100)):
+    path_to_petiso = "../../PET-CT_iso3mm/%s/PETiso.mhd" # % patient
     
-    data, label = np.zeros((len(patients),)+size[::-1]), np.zeros((len(patients),2))
+#    def load_image_patial(patient,
+#                          x_center, y_center, z_center,
+#                          ):
+        
+    
+    data, label = np.zeros((len(patients),)+image_size[::-1]), np.zeros((len(patients),2))
     count = 0
     for patient in patients:
         x_center, y_center, z_center = preprocess.lung_center_size(patient=patient, center_size="center")
-        xmin, ymin, zmin = max(0, x_center-int(size[0]/2.0)), max(0, y_center-int(size[1]/2.0)), max(0, z_center-int(size[2]/2.0))
-        xmax, ymax, zmax = xmin+size[0], ymin+size[1], zmin+size[2]
-        pet = readmhd.read(pth_to_petiso % patient).vol
+        xmin, ymin, zmin = max(0, x_center-int(image_size[0]/2.0)), max(0, y_center-int(image_size[1]/2.0)), max(0, z_center-int(image_size[2]/2.0))
+        xmax, ymax, zmax = xmin+image_size[0], ymin+image_size[1], zmin+image_size[2]
+        pet = readmhd.read(path_to_petiso % patient).vol
         data_temp = pet[zmin:zmax, ymin:ymax, xmin:xmax]
-        data[count] = data_temp.reshape(size+(1,))
+        data[count] = data_temp.reshape(image_size+(1,))
         if re.match("N.*", patient):
             label[count] = np.array([1,0])
         elif re.match("L.*", patient):
@@ -83,16 +88,41 @@ def make_validation(patients=[],
     return data, label
 
 def batch_iter(patients=[],
+               image_size=(100,100,100),
+               steps_per_epoch=2**10,
+               batch_size=32,
                ):
+    path_to_petiso = "../../PET-CT_iso3mm/%s/PETiso.mhd" # % patient
+
+    while True:
+        for step in range(steps_per_epoch):
+            data = np.zeros( (batch_size,)+image_size+(1,), dtype=np.uint8 )
+            labels = np.zeros( (batch_size,2), dtype=np.uint8 )
+            for count in range(batch_size):
+                patient = random.choice(patients)
+                x_center, y_center, z_center = preprocess.lung_center_size(patient=patient, center_size="center")
+                xmin, ymin, zmin = max(0, x_center-int(image_size[0]/2.0)), max(0, y_center-int(image_size[1]/2.0)), max(0, z_center-int(image_size[2]/2.0))
+                xmax, ymax, zmax = xmin+image_size[0], ymin+image_size[1], zmin+image_size[2]
+                pet = readmhd.read(path_to_petiso % patient).vol
+                data_temp = pet[zmin:zmax, ymin:ymax, xmin:xmax]
+                data[count] = data_temp.reshape(image_size+(1,))
+                if re.match("N.*", patient):
+                    labels[count] = np.array([1,0])
+                elif re.match("L.*", patient):
+                    labels[count] = np.array([0,1])
+                count += 1
+                if np.random.choice([True,False]): # ランダムに左右反転
+                    data = np.flip(data, axis=3)
+            yield data, labels
     
         
 def train_main(input_shape=(257,166,166,1),
-               size=(100,100,100),
+               image_size=(100,100,100),
                batch_size=8,
                epochs=256,
                ):
     
-    pth_to_petiso = "../../PET-CT_iso3mm/%s/PETiso.mhd" # % patient_id
+    path_to_petiso = "../../PET-CT_iso3mm/%s/PETiso.mhd" # % patient_id
     path_to_history = "./history.csv"
     
     # divide patients
@@ -101,10 +131,12 @@ def train_main(input_shape=(257,166,166,1),
     group_patients = divide_patients(patients, train_per=0.7, val_per=0.15, test_per=0.15)
     
     # load validation data
+    data["validaiton"], label["validation"] = make_validation(patients=group_patients["validation"], image_size=image_size)
+    
     # load data
-    data, label = {}, {}
-    for group in ["train", "validation", "test"]:
-        data[group], label[group] = make_validation(patients=group_patients[group], size=size)
+#    data, label = {}, {}
+#    for group in ["train", "validation", "test"]:
+#        data[group], label[group] = make_validation(patients=group_patients[group], size=size)
 #        data[group], label[group] = np.zeros((len(group_patients[group]),)+input_shape), np.zeros((len(group_patients[group]),2))
 ##    data["validation"], label["validation"] = np.zeros((len(patients),)+input_shape+(1,)), np.zeros((len(group_patients["validation"]),)+(1,))
 #        count = 0
