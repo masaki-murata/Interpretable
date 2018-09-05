@@ -118,6 +118,8 @@ def batch_iter(patients=[],
         
 def train_main(input_shape=(257,166,166,1),
                image_size=(100,100,100),
+               steps_per_epoch=2**10,
+               epochs=256,
                batch_size=8,
                epochs=256,
                ):
@@ -131,7 +133,14 @@ def train_main(input_shape=(257,166,166,1),
     group_patients = divide_patients(patients, train_per=0.7, val_per=0.15, test_per=0.15)
     
     # load validation data
+    data, label = {}, {}
     data["validaiton"], label["validation"] = make_validation(patients=group_patients["validation"], image_size=image_size)
+    
+    train_gen = batch_iter(patients=group_patients["train"],
+                           image_size=image_size, 
+                           steps_per_epoch=steps_per_epoch,
+                           batch_size=batch_size,
+                           )
     
     # load data
 #    data, label = {}, {}
@@ -153,12 +162,19 @@ def train_main(input_shape=(257,166,166,1),
     
 
     # set cnn model
+    input_shape = image_size+(1,)
     model = make_cnn(input_shape=input_shape)
     model.summary()
     model.compile(optimizer='sgd',
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
-    
+    history = model.fit_generator(train_gen,
+                                  steps_per_epoch=steps_per_epoch,
+                                  epochs=epochs,
+                                  validation_data=(data['validation'], label['validation']),
+#                                      validation_steps=valid_steps,
+#                                  callbacks=callbacks,
+                                  )
     history = model.fit(x=data["train"], y=label["train"], batch_size=batch_size, epochs=epochs, 
               validation_data=(data["validation"], label["validation"]),
               )
