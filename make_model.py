@@ -122,7 +122,7 @@ def train_main(input_shape=(257,166,166,1),
                epochs=256,
                ):
     
-    path_to_petiso = "../../PET-CT_iso3mm/%s/PETiso.mhd" # % patient_id
+    path_to_petiso = "../../PET-CT_iso3mm/%s/PETiso.mhd" # % patient
     path_to_history = "./history.csv"
     
     # divide patients
